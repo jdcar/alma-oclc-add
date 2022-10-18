@@ -1,3 +1,10 @@
+config.js
+data.csv
+data.tsv
+data.txt
+getError.txt
+results1-txt.xlsx
+testData.txt
 # Logs
 logs
 *.log

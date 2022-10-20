@@ -5,6 +5,9 @@ data.txt
 getError.txt
 results1-txt.xlsx
 testData.txt
+index2.js
+putError.txt
+getError.txt
 # Logs
 logs
 *.log

@@ -1,11 +1,7 @@
-// const fetch = require('node-fetch')
 const axios = require('axios')
 const config = require('./config.js')
 const productionKey = config.PRODUCTION_API_KEY
 const sandboxKey = config.SANDBOX_API_KEY
-
-let csv = require('fast-csv')
-const fs = require('fs')
 
 const headerConfig = {
     headers: {
@@ -14,32 +10,57 @@ const headerConfig = {
     }
 }
 
-var stream = fs.createReadStream("data.txt");
+//Keeps API calls under 1000
+for (let i = 1; i < 1000; i++) {
+    task(i);
+}
 
-csv.parseStream(stream, { headers: true, delimiter: '\t' })
-    .on("data", function (data) {
+function task(i) {
+    setTimeout(function () {
 
-        axios.get(`https://api-na.hosted.exlibrisgroup.com/almaws/v1/bibs/${data.MMS_ID}?apikey=${sandboxKey}&format=json`).then(resp => {
+        const fs = require("fs");
+        fs.readFile("data.txt", "utf-8", (err, data) => {
+            if (err) console.log(err);
+            else
 
-            const marc = `<bib>${resp.data.anies[0].replace(/\n/gm,"").replace(/(.+?)(<record>.+<\/controlfield>)(.+)/gm, `$2<datafield ind1=" " ind2=" " tag="035"><subfield code="a">(OCoLC)${data.OCLC}</subfield></datafield>$3`)}</bib>`
-            console.log(marc)
+            var lines = data.split('\n');
+            
+            var tabs = lines[i].split('\t');
 
-            const sendPutRequest = async () => {
+            const sendGetRequest = async () => {
                 try {
-                    const res = await axios.put(`https://api-na.hosted.exlibrisgroup.com/almaws/v1/bibs/${data.MMS_ID}?apikey=${sandboxKey}`, marc, headerConfig)
-                    console.log(res)    
+
+                    const resp = await axios.get(`https://api-na.hosted.exlibrisgroup.com/almaws/v1/bibs/${tabs[1].toString()}?apikey=${sandboxKey}&format=json`)
+
+                    const marc = `<bib>${resp.data.anies[0].replace(/\n/gm, "").replace(/(.+?)(<record>.+<\/controlfield>)(.+)/gm, `$2<datafield ind1=" " ind2=" " tag="035"><subfield code="a">(OCoLC)${tabs[0].toString()}</subfield></datafield>$3`)}</bib>`
+
+                    const sendPutRequest = async () => {
+                        try {
+                            const res = await axios.put(`https://api-na.hosted.exlibrisgroup.com/almaws/v1/bibs/${tabs[1].toString()}?apikey=${sandboxKey}`, marc, headerConfig)
+                            console.log("Success", tabs[1].toString())
+                        } catch (err) {
+                            fs.appendFile('putError.txt', tabs[1].toString(), function (err) {
+                                if (err) throw err
+                            })
+                        }
+
+                    }
+                    sendPutRequest()
+
                 } catch (err) {
-                    fs.appendFile('putError.txt', data.MMS_ID.toString(), function (err) {
-                        if (err) throw err
+                    fs.appendFile('getError.txt', tabs[1].toString(), function (err) {
+                        if (err) throw err;
+
                     })
                 }
-                
+
             }
-            
-            sendPutRequest()
+            sendGetRequest()
 
         });
-    })
+
+    }, 2000 * i);
+}
 
 
 
